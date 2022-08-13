@@ -29,6 +29,31 @@ After training, the model is used to generate a score for each unseen item for a
 #### Ranking
 The generated scores are sorted in the descending order and the top k items are provided as recommendations to the user. The top k items are across several categories. We can also provide the top k items for a related category.
 
+## Amazon Reviews Dataset
+[Amazon Reviews](http://deepyeti.ucsd.edu/jianmo/amazon/index.html) dataset has 157+ million reviews, and 15+ million items.
+
+We took the following steps to reduce the size of data (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_gen_dataset.ipynb)):
+- Filter only those reviews that are from verified users and the item reviewed has meta information (left with 133+ million reviews)
+- Next, recursively filter so that each user has reviewed at least 20 items and each item has been reviewed by 20 users (left with 38+ million reviews)
+- Clean up meta information, consolidate main categories
+- Finally only look at reviews of items whose main category and a selected list of subcategories belong to “Electronics” (includes 'Amazon Devices', 'Apple Products', etc.) (5.6+ million reviews from 830k+ users and 63k+ items in 36 categories as shown below).
+
+| Key stats for the dataset | |
+| -------------------------- | ----- |
+| # reviews | 5,613,183 |
+| # users | 830,668 |
+| # items | 63,725 |
+| # categories | 36 |
+
+<img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/item_dist.jpg?raw=true" target=”_blank” alt="Log count of items vs category"/>
+
+- For LightGBM, Wide & Deep, and xDeepFM, we consider both the main category as well as the sub-categories shown above.
+- For SLi-Rec and SASRec, we only consider the main category as the code for the models do not have support for sub-categories. The item distribution for the 12 main categories is shown below.
+<img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/item_dist_main.jpg?raw=true" target=”_blank” alt="Log count of items vs main category"/>
+
+- Chronological Split into train, validation, and test datasets. While the sequential models (SLi-Rec, SASRec) have an elaborate strategy to split the data chronologically into train, validation, and test datasets (the last record in the chronological sequence of reviews goes to the test, the second last to the validation, and the remaining to the train), we had to deploy the same strategy for the 3 models. We used the `python_chrono_split` from the [Microsoft Recommenders](https://github.com/microsoft/recommenders) framework that includes stratification and is available [here](https://github.com/microsoft/recommenders/blob/main/recommenders/datasets/python_splitters.py).
+- Besides the chronological split, xDeepFM requires the data to be in Field-aware Factorization Machine (FFM) format where each row in the dataset has the following format: `<label> <field_index_id>:<feature_index_id>:<feature_value>`. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_ffm.ipynb))
+
 ## Model Architecture
 ### LightGBM: A Highly Efficient Gradient Boosting Decision Tree
 
@@ -80,13 +105,23 @@ Notes about the model:<br>
 - Since self-attention model does not include any recurrent or convolutional module, it is not aware of the positions of previous items. Hence, the authors inject a learnable position embedding layer.
 - In order to tackle the problems of overfitting and vanishing gradients, the authors use both dropout and residual connections as shown above.
 
-## Amazon Reviews Dataset
-[Amazon Reviews](http://deepyeti.ucsd.edu/jianmo/amazon/index.html) dataset has 157+ million reviews, and 15+ million items.
+## Modeling
+We used the [Microsoft Recommenders](https://github.com/microsoft/recommenders) for this study. The repository offers implementations of the above models and provides examples and best practices for building recommendation systems.
 
-We took the following steps to reduce the size of data (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_gen_dataset.ipynb)):
-- Filter only those reviews that are from verified users and the item reviewed has meta information (left with 133+ million reviews)
-- Next, recursively filter so that each user has reviewed at least 20 items and each item has been reviewed by 20 users (left with 38+ million reviews)
-- Clean up meta information, consolidate main categories
-- Finally only look at reviews of items whose main category and a selected list of subcategories belong to “Electronics” (includes 'Amazon Devices', 'Apple Products', etc.) (5.6+ million reviews from 830k+ users and 63k+ items in 36 categories as shown below).
+### LightGBM, Wide & Deep, xDeepFM
+The 3 models use the Amazon Reviews dataset as a **regression** problem. The models are trained to predict the target rating of an item by a user and use square loss function and root mean square error (RMSE) and mean absolute error (MAE) as metrics.
+### SLi-Rec, SASRec
+The two models use the Amazon Reviews dataset as a **binary classification** problem. The models are trained to predict the probability of a user to review an item. The models are trained to reduce the binary cross entropy loss (logloss) and use area under the curve (AUC) as metric.<br>
+- Because of the fundamental difference among the models, we cannot compare the performance of the models directly. The two sequential models (SLi-Rec & SASRec) already output two other metrics - **Normalized Discounted Cumulative Gain (NDCG)** and **Hit Rate**, we added code to output the same metric from the other 3 models for this study.
+- To avoid heavy computation on all user-item pairs (a cross join of 5.6M users and 63K items!), the authors for the models followed a strategy based on positive and negative sampling. For each user <i>u</i> in the test dataset, we randomly sample 50 negative items, and rank these items with the ground truth item. Based on the rankings of these 51 items, NDCG@10 and Hit@10 is evaluated for all models.
 
-<img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/item_dist.jpg?raw=true" target=”_blank” alt="Log count of items vs category"/>
+### Comparing models based on NDCG@10, Hit@10
+
+|     | Collaborative filtering |     | Content-based filtering | Hybrid |     |
+| --- | ----------------------- | --- | ----------------------- | ------ | --- |
+|  | SLi-Rec | SASRec | LightGBM | Wide & Deep | xDeepFM |
+| NDCG@10 | **0.4128** | 0.3929 | 0.0725 | 0.1256 | 0.1881 |
+| Hit@10 | **0.6699** | 0.61 | 0.1631 | 0.2781 | 0.3497 |
+
+### Modeling Details
+- LightGM
