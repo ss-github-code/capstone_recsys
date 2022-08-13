@@ -79,3 +79,14 @@ Notes about the model:<br>
 - This is the same mechanism used in Natural Language Processing that has proven to be highly effective in uncovering complex syntactic and semantic patterns between words in a sentence.
 - Since self-attention model does not include any recurrent or convolutional module, it is not aware of the positions of previous items. Hence, the authors inject a learnable position embedding layer.
 - In order to tackle the problems of overfitting and vanishing gradients, the authors use both dropout and residual connections as shown above.
+
+## Amazon Reviews Dataset
+[Amazon Reviews](http://deepyeti.ucsd.edu/jianmo/amazon/index.html) dataset has 157+ million reviews, and 15+ million items.
+
+We took the following steps to reduce the size of data (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_gen_dataset.ipynb)):
+- Filter only those reviews that are from verified users and the item reviewed has meta information (left with 133+ million reviews)
+- Next, recursively filter so that each user has reviewed at least 20 items and each item has been reviewed by 20 users (left with 38+ million reviews)
+- Clean up meta information, consolidate main categories
+- Finally only look at reviews of items whose main category and a selected list of subcategories belong to “Electronics” (includes 'Amazon Devices', 'Apple Products', etc.) (5.6+ million reviews from 830k+ users and 63k+ items in 36 categories as shown below).
+
+<img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/item_dist.jpg?raw=true" target=”_blank” alt="Log count of items vs category"/>
