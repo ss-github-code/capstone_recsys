@@ -1,5 +1,4 @@
 # Capstone Project (July, August 2022)
-Recommender Systems - A Deep Dive
 
 ## Problem Statement
 ### [Recommendations: What and Why](https://developers.google.com/machine-learning/recommendation/overview)
@@ -31,6 +30,15 @@ After training, the model is used to generate a score for each unseen item for a
 The generated scores are sorted in the descending order and the top k items are provided as recommendations to the user. The top k items are across several categories. We can also provide the top k items for a related category.
 
 ## Model Architecture
+### LightGBM: A Highly Efficient Gradient Boosting Decision Tree
+
+<img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/architect_lightgbm.png?raw=true" alt="The architecture of LightGBM"/>
+
+Notes about the model:<br>
+- Model with fast training speed and high efficiency
+- Support for parallel, distributed, and GPU learning
+- We only require ordinal encoder to encode string like categorical features.
+
 ### [Wide & Deep](https://arxiv.org/abs/1606.07792): Wide & Deep Learning for Recommender Systems
 
 <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/architect_widendeep.png?raw=true" alt="The architecture of Wide & Deep"/>
@@ -60,4 +68,14 @@ Notes about the model:<br>
 - In order to capture the static components influencing users' behaviors, which reflect their long-term behavior, the authors adopt the attentive "Asymmetric SVD" paradigm.
 - Finally, the model uses an attention based fusion method to adapt to short and long term preferences:
   - **When**: if next action occurs shortly after the last action; short-term information plays a major role in prediction; otherwise long-term component weighs more.
-  - **What**: if recent actions share a distinct intent/preference, then the next action may have a higher probability to share the same intent. (iPhones, airpods,.... MacBook?)
+  - **What**: if recent actions share a distinct intent/preference, then the next action may have a higher probability to share the same intent. (iPhones, airpods,.... MacBook?)<br>
+
+### [SASRec](https://arxiv.org/abs/1808.09781): Self-Attentive Sequential Recommendation
+
+<img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/architect_sasrec.png?raw=true" alt="The architecture of SASRec"/>
+
+Notes about the model:<br>
+- Unlike existing sequential models that use convolutional or recurrent modules, SASRec uses Transformer based on the 'self-attention' mechanism.
+- This is the same mechanism used in Natural Language Processing that has proven to be highly effective in uncovering complex syntactic and semantic patterns between words in a sentence.
+- Since self-attention model does not include any recurrent or convolutional module, it is not aware of the positions of previous items. Hence, the authors inject a learnable position embedding layer.
+- In order to tackle the problems of overfitting and vanishing gradients, the authors use both dropout and residual connections as shown above.
