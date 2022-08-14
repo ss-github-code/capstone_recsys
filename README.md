@@ -51,7 +51,8 @@ We took the following steps to reduce the size of data (source code: [Jupyter No
 - For SLi-Rec and SASRec, we only consider the main category as the code for the models do not have support for sub-categories. The item distribution for the 12 main categories is shown below.
 <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/item_dist_main.jpg?raw=true" target=”_blank” alt="Log count of items vs main category"/>
 
-- Chronological Split into train, validation, and test datasets. While the sequential models (SLi-Rec, SASRec) have an elaborate strategy to split the data chronologically into train, validation, and test datasets (the last record in the chronological sequence of reviews goes to the test, the second last to the validation, and the remaining to the train), we had to deploy the same strategy for the 3 models. We used the `python_chrono_split` from the [Microsoft Recommenders](https://github.com/microsoft/recommenders) framework that includes stratification and is available [here](https://github.com/microsoft/recommenders/blob/main/recommenders/datasets/python_splitters.py).
+- **Chronological splitting** the Amazon reviews dataset into train, validation, and test datasets. While the sequential models (SLi-Rec, SASRec) have an elaborate strategy to split the data chronologically into train, validation, and test datasets (the last record in the chronological sequence of reviews goes to the test, the second last to the validation, and the remaining to the train), we had to deploy the same strategy for the 3 models. We used the `python_chrono_split` from the [Microsoft Recommenders](https://github.com/microsoft/recommenders) framework that includes stratification and is available [here](https://github.com/microsoft/recommenders/blob/main/recommenders/datasets/python_splitters.py).
+<a id=ffm_format></a>
 - Besides the chronological split, xDeepFM requires the data to be in Field-aware Factorization Machine (FFM) format where each row in the dataset has the following format: `<label> <field_index_id>:<feature_index_id>:<feature_value>`. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_ffm.ipynb))
 
 ## Model Architecture
@@ -84,7 +85,7 @@ Notes about the model:<br>
 - Requires data according to the format required. Each row has a label (rating), and tab separated field_id:feature_id:feature_value for both numeric (user id, item id) and categorical (category/sub-category) features.<br>
 
 ### [SLi-Rec](https://www.microsoft.com/en-us/research/uploads/prod/2019/07/IJCAI19-ready_v1.pdf): Adaptive User Modeling with Long and Short-Term Preferences for Personalized Recommendation
-
+<a id='sli_rec_arch'></a>
 <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/architect_slirec.png?raw=true" alt="The architecture of SLi-Rec"/>
 
 Notes about the model:<br>
@@ -106,14 +107,15 @@ Notes about the model:<br>
 - In order to tackle the problems of overfitting and vanishing gradients, the authors use both dropout and residual connections as shown above.
 
 ## Modeling
-We used the [Microsoft Recommenders](https://github.com/microsoft/recommenders) for this study. The repository offers implementations of the above models and provides examples and best practices for building recommendation systems.
+We used the [Microsoft Recommenders](https://github.com/microsoft/recommenders) for this study. The repository offers implementations of the models under study and provides examples and best practices for building recommendation systems. However, we did make changes to the library's implementations when there were specific performance and process requirements (as discussed below).
 
 ### LightGBM, Wide & Deep, xDeepFM
 The 3 models use the Amazon Reviews dataset as a **regression** problem. The models are trained to predict the target rating of an item by a user and use square loss function and root mean square error (RMSE) and mean absolute error (MAE) as metrics.
 ### SLi-Rec, SASRec
 The two models use the Amazon Reviews dataset as a **binary classification** problem. The models are trained to predict the probability of a user to review an item. The models are trained to reduce the binary cross entropy loss (logloss) and use area under the curve (AUC) as metric.<br>
+<a id=ndcg_10></a>
 - Because of the fundamental difference among the models, we cannot compare the performance of the models directly. The two sequential models (SLi-Rec & SASRec) already output two other metrics - **Normalized Discounted Cumulative Gain (NDCG)** and **Hit Rate**, we added code to output the same metric from the other 3 models for this study.
-- To avoid heavy computation on all user-item pairs (a cross join of 5.6M users and 63K items!), the authors for the models followed a strategy based on positive and negative sampling. For each user <i>u</i> in the test dataset, we randomly sample 50 negative items, and rank these items with the ground truth item. Based on the rankings of these 51 items, NDCG@10 and Hit@10 is evaluated for all models.
+- To avoid heavy computation on all user-item pairs (a cross join of 830K+ users and 63K items!), the authors for the models followed a strategy based on positive and negative sampling. For each user <i>u</i> in the test dataset, we randomly sample 50 negative items, and rank these items with the ground truth item. Based on the rankings of these 51 items, NDCG@10 and Hit@10 is evaluated for all models.
 
 ### Comparing models based on NDCG@10, Hit@10
 
@@ -124,4 +126,48 @@ The two models use the Amazon Reviews dataset as a **binary classification** pro
 | Hit@10 | **0.6699** | 0.61 | 0.1631 | 0.2781 | 0.3497 |
 
 ### Modeling Details
-- LightGM
+#### LightGBM
+In this model, categorical features were encoded using the ordinal encoder from the [Category Encoders](https://contrib.scikit-learn.org/category_encoders/) library. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/lightgbm/lightgbm_amzn_electronics.ipynb))
+- The validation loss and the 5 most important features from the feature importance list are shown below. Note that the model training is stopped due to early stopping as the validation rmse does not improve after 20 rounds. Here C3, C11, and C15 categories are "All Electronics", "Cell Phones & Accessories", and "Computers" categories/genres respectively.
+
+| Validation Loss (RMSE) | 5 most important features |
+| ---------------------- | ------------------------- |
+| <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/lightgbm_valid_loss.jpg?raw=true" alt="Validation loss LightGBM model"/> | <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/lightgbm_feature_importance.jpg?raw=true" alt="5 most important features for the LightGBM model"/> |
+
+- The model performance on the unseen test data: RMSE: 1.453, MAE: 0.901 was the worst when compared to Wide & Deep and xDeepFM models.
+- We added code to enable the NDCG@10 and Hit@10 calculations based on all the users in the test set and using 50 negative samples for every positive sample as explained [here](#ndcg_10) taking care of the use of ordinal encoded categorical features.
+<a id=top_k_user></a>
+- In addition, we added code to print the top k recommendations for a user. For this study, we chose a user who has the most reviews in our dataset. We had the model output predicted scores for all the items not reviewed by the user, sort the results in the descending order and display the results in a dashboard. (TODO)
+
+#### Wide & Deep
+In this model, categorical features were encoded using the [`MultiLabelBinarizer`](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MultiLabelBinarizer.html) from `sklearn.preprocessing` library. In addition, there are a series of preprocessing steps to convert the Amazon reviews dataset into the input format required by the model. These are shown in the Jupyter notebook [here](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_gen_input_wide_deep.ipynb). (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/wide_n_deep/wide_deep_electronics.ipynb))
+- One important code change that we had to make in order to train the model using the Recommenders library on a GPU was as follows. The library's implementation of `pandas_input_fn` uses TensorFlow's `tf.data.Dataset.from_tensor_slices` api. This would try to load the entire dataframe on to the GPU and fail to do so. Instead we changed the function to use `tf.data.Dataset.from_generator` api. (source code: [Python](https://github.com/ss-github-code/capstone_recsys/blob/main/recommenders/utils/tf_utils.py))
+- The validation loss (RMSE and MAE) are shown below.
+<img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/wide_deep_valid_loss.jpg?raw=true" alt="Validation loss Wide & Deep model"/>
+
+- The model performance on the unseen test data: RMSE: 1.13, MAE: 0.792 was lower than that of the LightGBM model.
+- We added code to enable the NDCG@10 and Hit@10 calculations based on all the users in the test set and using 50 negative samples for every positive sample as explained [here](#ndcg_10) taking care of the encoding requirement of the categorical features.
+- In addition, we added code to print the top k recommendations for a user as explained [here](#top_k_user).
+
+### xDeepFM
+In this model, numerical and categorical features had to be input using the FFM format. The preprocessing step is discussed [here](#ffm_format). In addition, we had to perform hyperparameter tuning in order to prevent overfitting. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/xdeepfm/xdeepfm_electronics.ipynb))
+- The training and validation loss (RMSE) during the model (built with the tuned parameters: dropout rate: 0.5, L2 regularization: 0.01) training are shown below. The best model performance occurs at epoch 13 before the model still overfits and the training is stopped.
+<img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/xdeepfm_train_valid_loss.jpg?raw=true" alt="Validation loss xDeepFM model"/>
+
+- The model performance on the unseen test data: RMSE: 1.1891 is comparable to that of the wide & deep model.
+- We added code to enable the NDCG@10 and Hit@10 calculations based on all the users in the test set and using 50 negative samples for every positive sample as explained [here](#ndcg_10) taking care of the FFM format requirement for the numerical and categorical features.
+- In addition, we added code to print the top k recommendations for a user as explained [here](#top_k_user).
+
+### Summary for the regression based models
+|     | Test RMSE |
+| --- | --------- |
+| LightGBM | 1.453 |
+| Wide & Deep | **1.13** |
+| xDeepFM | 1.189 |
+
+### SLi-Rec
+The model requires the user, item and category vocabulary dictionaries mapping the alphanumeric userID, itemID and string categories to integers. In addition, the input to the model requires the data to be prepared in a series of steps that generate the 3 dictionaries (as pickle files) and the required train, validation and test datasets. The preprocessing steps to convert the Amazon review dataset are shown [here](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_gen_input_slirec.ipynb). In addition, we had to perform hyperparameter tuning in order to prevent overfitting. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/slirec/slirec_electronics.ipynb))
+- The training and validation loss (RMSE) during the model (built with the tuned parameters: dropout rate: 0.5 in each of the 2 fully connected layers in the [FCN layer](#sli_rec_arch) and L2 regularization: 0.01) training are shown below. In addition, the rating metric AUC, and the pairwise ranking metric NDCG@6 plots for the validation data are shown below.
+
+### SASRec
+The model requires the user and item vocabulary dictionaries mapping the alphanumeric userID and itemID to integers. The process of generating negative samples is handled by the `WarpSampler` object from the Recommenders library. As with xDeepFM and SLi-Rec models, we performed hyperparameter tuning in order to prevent overfitting. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/sasrec/sasrec_electronics.ipynb))
