@@ -168,11 +168,55 @@ In this model, numerical and categorical features had to be input using the FFM 
 ### 4. SLi-Rec
 The model requires the user, item and category vocabulary dictionaries mapping the alphanumeric userID, itemID and string categories to integers. In addition, the input to the model requires the data to be prepared in a series of steps that generate the 3 dictionaries (as pickle files) and the required train, validation and test datasets. The preprocessing steps to convert the Amazon review dataset are shown [here](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_gen_input_slirec.ipynb). 
 - We setup the hyperparameters according to the authors' suggestions in the paper. Dimension for item/category embedding and RNN hidden layers is 18, while the dimension for the layers in [FCN](#sli_rec_arch) are set to 36. Learning rate is 0.001, L2 regularization is 0.0001 and no dropouts are used. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/slirec/slirec_electronics.ipynb))
-- The training and validation loss (RMSE) during the model training are shown below. In addition, the rating metric AUC, and the pairwise ranking metric NDCG@6 plots for the validation data are shown below.
+- The training and validation loss (logloss) during the model training are shown below. In addition, the rating metric AUC, and the pairwise ranking metric NDCG@6 plots for the validation data are shown below.
 
 | Log Loss (Train, Validation) | Validation AUC, NDCG@6 |
 | ---------------------------- | ---------------------- |
 | <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/sli_train_valid_logloss.png?raw=true" alt="Loss SLi-Rec model"/> | <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/sli_valid_auc_ndcg6.png?raw=true" alt="Validation AUC and NDCG@6"/>
 
 ### 5. SASRec
-The model requires the user and item vocabulary dictionaries mapping the alphanumeric userID and itemID to integers. The process of generating negative samples is handled by the `WarpSampler` object from the Recommenders library. As with xDeepFM and SLi-Rec models, we performed hyperparameter tuning in order to prevent overfitting. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/sasrec/sasrec_electronics.ipynb))
+The model requires the user and item vocabulary dictionaries mapping the alphanumeric userID and itemID to integers. The process of generating negative samples is handled by the `WarpSampler` object from the Recommenders library during training. However, the library's implementation would randomly pick users during the training. We changed the implementation to pick users after shuffling the set of users once at the beginning and when the sampler ran out of users to sample as shown here: (source code: [Python](https://github.com/ss-github-code/capstone_recsys/blob/main/recommenders/models/sasrec/train_sampler.py)). As with xDeepFM and SLi-Rec models, we performed hyperparameter tuning in order to prevent overfitting. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/sasrec/sasrec_electronics.ipynb))
+- Another addition we added was to enable batch processing of both validation and test sets. The implementation in the library would process only 10,000 randomly chosen users during the validation process and that too one user at a time. This would lead to extremely slow processing of validation and test datasets. We implemented code to enable batch processing of the entire validation and test datasets as shown here: (source code: [Python](https://github.com/ss-github-code/capstone_recsys/blob/main/recommenders/models/sasrec/valid_test_sampler.py)). This ensured that the entire validation (and test) dataset can be completed in about a minute and speed up the hyperparamter tuning significantly.
+- We also made minor changes to the implementation of the SASRec model to return the training and validation logloss as well as the pairwise metrics NDCG@10, Hit@10. We added code to save the model weights at the end of each training epoch as shown here: (source code: [Python](https://github.com/ss-github-code/capstone_recsys/blob/main/recommenders/models/sasrec/model.py)).
+- Tuning the hyperparameters took longer than usual. We started with the default parameters (hidden units=100, dropout rate=0.5, L2 regularization=0) and observed overfitting (training loss decreased, while the validation loss increased; just to clarify this occured even when using the default implementation of the training and validation loops and it did not improve even when we changed it to batch validation). We referred to the authors' implementation, and the paper. Even when setting the dropout rate to 0.95, we have not been able to satisfactorily prevent overfitting as shown below.
+- The training and validation loss (logloss) during the model training are shown below. In addition, the pairwise ranking metrics NDCG@10 and Hit@10 plots for the validation data are shown below.
+
+| Log Loss (Train, Validation) | Validation NDCG@10, Hit@10 |
+| ---------------------------- | -------------------------- |
+| <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/sas_train_valid_logloss.png?raw=true" alt="Loss SASRec model"/> | <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/sas_ndcg_hit10.png?raw=true" alt="NDCG@10 and Hit@10"/>
+
+## Model Serving and Top K recommendations
+For each model, we have added code to compute the top k recommendations for any user. 
+- For this study in order to compare the quality of recommendations made, we chose the user that had the most reviews in our dataset.
+- This user had 324 product reviews. The 10 most recent ones in the training dataset were as follows:
+
+| Date | Main category | Other categories | Title |
+| ---- | ------------- | ---------------- | ----- |
+| 2018-03-25 | Home Audio & Theater | Electronics, Accessories & Supplies, Audio & Video Accessories | BlueRigger High Speed Micro HDMI to HDMI cable with Ethernet (10 Feet) - Support 4K- UltraHD, 3D, 1080p (Latest Standard) |
+| 2018-03-25 | All Electronics | Electronics, Computers & Accessories, Computer Components | Corsair CMSA8GX3M2A1066C7 Apple 8 GB Dual Channel Kit DDR3 1066 (PC3 8500) 204-Pin DDR3 Laptop SO-DIMM Memory 1.5V |
+| 2018-03-25 | All Electronics | Electronics, Computers & Accessories |	D-Link 8 Port 10/100 Unmanaged Metal Desktop Switch (DES-108) |
+| 2018-03-25 | Computers | Electronics, Computers & Accessories |	New iPad 9.7" (2018 & 2017) / iPad Pro 9.7 / iPad Air 2 / iPad Air Screen Protector, SPARIN Tempered Glass Screen Protector - Apple Pencil Compatible/High Definition/Scratch Resistant |
+| 2018-03-25 | Computers | Electronics, Computers & Accessories |	StarTech.com CABSHELF Black Standard Universal Server Rack Cabinet Shelf |
+| 2018-03-25 | All Electronics | Electronics, Accessories & Supplies, Audio & Video Accessories | ESYNIC DAC Digital to Analog Audio Converter Optical Coax to Analog RCA Audio Adapter with Optical Cable 3.5mm Jack Output for HDTV Blu Ray DVD Sky HD Xbox 360 TV Box |
+| 2018-03-13 | All Electronics | Office Products, Office Electronics | HP Laserjet Pro M402dw Wireless Monochrome Printer, Amazon Dash Replenishment Ready (C5F95A#BGJ) |
+| 2018-03-13 | All Electronics | Electronics, Accessories & Supplies, Audio & Video Accessories |	VCE 4K x 2K Mini HDMI Male to HDMI Female Converter Adapter Cable-6 Inch |
+| 2018-03-13 | Computers | Electronics, Computers & Accessories, Computer Components | Timetec Hynix IC 4GB DDR3L 1600MHz PC3L-12800 Unbuffered Non-ECC 1.35V CL11 2Rx8 Dual Rank 204 Pin SODIMM Laptop Notebook Computer Memory Ram Upgrade (Dual Rank 4GB) |
+| 2017-09-08 | Home Audio & Theater | Home & Kitchen | VIVO Universal LCD LED Flat Screen TV Table Top Desk Stand with Glass Base fits 32" to 55" T.V. (STAND-TV00L) |
+
+- The validation record for this user is :
+
+| Date | Main category | Other categories | Title |
+| ---- | ------------- | ---------------- | ----- |
+| 2018-03-25 | All Electronics | Electronics, Audio & Video Accessories | ESYNIC DAC Digital to Analog Audio Converter Optical Coax to Analog RCA Audio Adapter with Optical Cable 3.5mm Jack Output for HDTV Blu Ray DVD Sky HD Xbox 360 TV Box |
+
+- And finally the test record for this user is :
+
+| Date | Main category | Other categories | Title |
+| ---- | ------------- | ---------------- | ----- |
+| 2018-03-25 | Computers| Electronics, Computers & Accessories | New iPad 9.7" (2018 & 2017) / iPad Pro 9.7 / iPad Air 2 / iPad Air Screen Protector, SPARIN Tempered Glass Screen Protector - Apple Pencil Compatible/High Definition/Scratch Resistant |
+
+- While the recent history would play a significant role in recommendations made by the sequential models (SLi-Rec, SASRec), we can also look at the histogram of the categories of products reviewed by this user overall (including sub categories) and just the main category alone.
+
+| Histogram of all categories in the product reviews by the user | Histogram of main categories in the product reviews by the user |
+| -------------------------------------------------------------- | --------------------------------------------------------------- |
+| <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/hist_all_cat.png?raw=true" alt="Histogram of all categories in the reviews"/> | <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/hist_main_cat.png?raw=true" alt="Histogram of all categories in the reviews"/> |
