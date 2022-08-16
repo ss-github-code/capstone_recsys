@@ -2,11 +2,11 @@
 # Licensed under the MIT License.
 
 # Instead of using tf.data.Dataset.from_tensor_slices, we use tf.data.Dataset.from_generator
-
+import numpy as np
 import tensorflow as tf
 
 def pandas_input_fn_mod(
-    df, y_col=None, batch_size=128, num_epochs=1, shuffle=False, seed=None, num_cat_features=36
+    df, y_col=None, batch_size=128, num_epochs=1, shuffle=False, seed=None, num_cate_features=36
 ):
     """Pandas input function for TensorFlow high-level API Estimator.
     This function returns a `tf.data.Dataset` function.
@@ -48,11 +48,11 @@ def pandas_input_fn_mod(
         num_epochs=num_epochs,
         shuffle=shuffle,
         seed=seed,
-        num_cat_features=num_cat_features,
+        num_cate_features=num_cate_features,
     )
 
 
-def _dataset_mod(x, y=None, batch_size=128, num_epochs=1, shuffle=False, seed=None, num_cat_features=36):
+def _dataset_mod(x, y=None, batch_size=128, num_epochs=1, shuffle=False, seed=None, num_cate_features=36):
     if y is None:
         dataset = tf.data.Dataset.from_tensor_slices(x)
     else:
