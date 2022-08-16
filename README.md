@@ -21,8 +21,6 @@ In order to recreate this project, the following steps are required.
   - The notebooks for preparing data for [LightGBM](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_gen_input_lightgbm.ipynb) and [SLi-Rec and SASRec](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_gen_input_slirec.ipynb) models can be run next. 
 8. In case you do have access to the preprocessed datasets, you can start in any of notebooks for the 5 models under study in the [modeling](https://github.com/ss-github-code/capstone_recsys/tree/main/modeling) folder.
 
-For more information and details about each model and the comparison between models, refer to the [project report](https://github.com/ss-github-code/capstone_recsys/blob/main/report/report.md).
-
 ## Train, validate, and test models
 In general, each Jupyter notebook in the [modeling](https://github.com/ss-github-code/capstone_recsys/tree/main/modeling) folder follows the same set of steps. They are:
 1. Any additional data preprocessing/preparation required
@@ -33,3 +31,6 @@ In general, each Jupyter notebook in the [modeling](https://github.com/ss-github
 6. Load the best model and generate predictions for the test dataset. This outputs the pairwise metrics NDCG@10 and Hit@10.
 7. Generate predictions for the user with the most reviews for all items unseen by the user. You can select a different user if you want to.
 8. Save the prediction scores, titles, category for the selected user. The output generated in this step is the input to our dashboard where we analyze the difference in the recommendations made by the 5 models.
+
+## Link to the project report
+For more information and details about each model and the comparison between models, refer to the [project report](https://github.com/ss-github-code/capstone_recsys/blob/main/report/report.md).
