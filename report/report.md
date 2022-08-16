@@ -1,4 +1,4 @@
-# Capstone Project (July, August 2022)
+# Capstone Project Report (August 2022)
 
 ## Problem Statement
 ### Recommendations: What and Why
