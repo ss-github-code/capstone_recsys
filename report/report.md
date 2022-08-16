@@ -47,7 +47,7 @@ In this project, **we had the following goals**:
 ## Data Preparation: Amazon Reviews Dataset
 [Amazon Reviews](http://deepyeti.ucsd.edu/jianmo/amazon/index.html) dataset has 157+ million reviews, and 15+ million items.
 
-We took the following steps to reduce the size of data (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_gen_dataset.ipynb)):
+We took the following steps to reduce the size of data (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/data_preparation/amzn_gen_dataset.ipynb)):
 - Filter only those reviews that are from verified users and the item reviewed has meta information (left with 133+ million reviews)
 - Next, recursively filter so that each user has reviewed at least 20 items and each item has been reviewed by 20 users (left with 38+ million reviews)
 - Clean up meta information, consolidate main categories
@@ -68,7 +68,7 @@ We took the following steps to reduce the size of data (source code: [Jupyter No
 
 - **Chronological splitting** the Amazon reviews dataset into train, validation, and test datasets. While the sequential models (SLi-Rec, SASRec) have an elaborate strategy to split the data chronologically into train, validation, and test datasets (the last record in the chronological sequence of reviews goes to the test, the second last to the validation, and the remaining to the train), we had to deploy the same strategy for the 3 models. We used the `python_chrono_split` from the [Microsoft Recommenders](https://github.com/microsoft/recommenders) framework that includes stratification and is available [here](https://github.com/microsoft/recommenders/blob/main/recommenders/datasets/python_splitters.py).
 <a id=ffm_format></a>
-- Besides the chronological split, xDeepFM requires the data to be in Field-aware Factorization Machine (FFM) format where each row in the dataset has the following format: `<label> <field_index_id>:<feature_index_id>:<feature_value>`. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_ffm.ipynb))
+- Besides the chronological split, xDeepFM requires the data to be in Field-aware Factorization Machine (FFM) format where each row in the dataset has the following format: `<label> <field_index_id>:<feature_index_id>:<feature_value>`. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/data_preparation/amzn_ffm.ipynb))
 
 ## Modeling: Review of model architectures under study
 The following 5 models were used for candidate generation, scoring and ranking:
@@ -155,7 +155,7 @@ In this model, categorical features were encoded using the ordinal encoder from 
 - In addition, we added code to print the top k recommendations for a user. For this study, we chose a user who has the most reviews in our dataset. We had the model output predicted scores for all the items not reviewed by the user, sort the results in the descending order and display the results in a dashboard. (TODO)
 
 #### 2. Wide & Deep
-In this model, categorical features were encoded using the [`MultiLabelBinarizer`](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MultiLabelBinarizer.html) from `sklearn.preprocessing` library. In addition, there are a series of preprocessing steps to convert the Amazon reviews dataset into the input format required by the model. These are shown in the Jupyter notebook [here](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_gen_input_wide_deep.ipynb). (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/wide_n_deep/wide_deep_electronics.ipynb))
+In this model, categorical features were encoded using the [`MultiLabelBinarizer`](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MultiLabelBinarizer.html) from `sklearn.preprocessing` library. In addition, there are a series of preprocessing steps to convert the Amazon reviews dataset into the input format required by the model. These are shown in the Jupyter notebook [here](https://github.com/ss-github-code/capstone_recsys/blob/main/data_preparation/amzn_gen_input_wide_deep.ipynb). (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/wide_n_deep/wide_deep_electronics.ipynb))
 - One important code change that we had to make in order to train the model using the Recommenders library on a GPU was as follows. The library's implementation of `pandas_input_fn` uses TensorFlow's `tf.data.Dataset.from_tensor_slices` api. This would try to load the entire dataframe on to the GPU and fail to do so. Instead we changed the function to use `tf.data.Dataset.from_generator` api. (source code: [Python](https://github.com/ss-github-code/capstone_recsys/blob/main/recommenders/utils/tf_utils.py))
 - The validation loss (RMSE and MAE) are shown below.
 <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/wide_deep_valid_loss.jpg?raw=true" alt="Validation loss Wide & Deep model"/>
@@ -181,7 +181,7 @@ In this model, numerical and categorical features had to be input using the FFM 
 | xDeepFM | 1.189 |
 
 ### 4. SLi-Rec
-The model requires the user, item and category vocabulary dictionaries mapping the alphanumeric userID, itemID and string categories to integers. In addition, the input to the model requires the data to be prepared in a series of steps that generate the 3 dictionaries (as pickle files) and the required train, validation and test datasets. The preprocessing steps to convert the Amazon review dataset are shown [here](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_gen_input_slirec.ipynb). 
+The model requires the user, item and category vocabulary dictionaries mapping the alphanumeric userID, itemID and string categories to integers. In addition, the input to the model requires the data to be prepared in a series of steps that generate the 3 dictionaries (as pickle files) and the required train, validation and test datasets. The preprocessing steps to convert the Amazon review dataset are shown [here](https://github.com/ss-github-code/capstone_recsys/blob/main/data_preparation/amzn_gen_input_slirec.ipynb). 
 - We setup the hyperparameters according to the authors' suggestions in the paper. Dimension for item/category embedding and RNN hidden layers is 18, while the dimension for the layers in [FCN](#sli_rec_arch) are set to 36. Learning rate is 0.001, L2 regularization is 0.0001 and no dropouts are used. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/slirec/slirec_electronics.ipynb))
 - The training and validation loss (logloss) during the model training are shown below. In addition, the rating metric AUC, and the pairwise ranking metric NDCG@6 plots for the validation data are shown below.
 
