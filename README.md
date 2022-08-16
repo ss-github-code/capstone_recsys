@@ -1,9 +1,13 @@
 # Capstone Project (July, August 2022)
 
 ## Problem Statement
-### [Recommendations: What and Why](https://developers.google.com/machine-learning/recommendation/overview)
-- Recommending the top k items to a user on their homepage
-- Recommending the related set of k items once a user has clicked on a product
+### Recommendations: What and Why
+As explained in the advanced course on [Recommendation Systems](https://developers.google.com/machine-learning/recommendation/overview) by Google, ML-based recommendation model is responsible for determining the similarity of items (movies, e-commerce, videos, etc.) in a large collection and then coming up with a recommendation based on a user's likes or interests. The goal of a recommendation system is to find compelling content from a large collection consisting of millions of items. Yes, the user can initiate a search to access content. However, a recommendation system can display related items that users might not even have thought to search.
+
+Two kinds of recommendations are commonly used:
+
+- Recommending the **top k** items to a user on their homepage personalized for that user based on their known interests/history
+- Recommending the **related set of k** items once a user has clicked on/viewed/purchased a product
 
 One common pipeline for Recommendation Systems consists of the following components:
 - Candidate Generation
@@ -11,13 +15,18 @@ One common pipeline for Recommendation Systems consists of the following compone
 - Ranking
 
 #### Candidate Generation
-The system starts with a huge corpora and builds and trains a model in order to output a score to an item based on features provided as an input to the model. The exact nature of features depends on the type of model chosen.
+The system starts with a huge corpora and builds and trains one or more models using item and user features provided as an input to the model. The exact nature of features depends on the type of model chosen.
 
 There are two main approaches to candidate generation:
 - **Collaborative Filtering**: Item and user similarity is used simultaneously to provide recommendations.
 - **Content-based Filtering**: Item similarity is used to recommend items similar to what the user has liked before.
 
-List of models considered in this study for candidate generation:
+Both approaches map each item and each user (referred to as a query as we can also associate additional context to a user, e.g. item history) to an embedding vector in a common embedding space E = R<sup>d</sup>. Typically, the embedding space is low-dimensional where the dimension `d` is much smaller compared to the size of the corpus.<br>
+
+For this project, we started with the simple collaborative filtering method: **matrix factorization**. In this model, given the rating matrix A ∈ R<sup>m x n</sup>, where m is the number of users (or queries) and n is the number of items, the model learns a user embedding matrix U ∈ R<sup>m x d</sup> and an item embedding matrix V ∈ R<sup>n x d</sup>. The embeddings are learned such that the product UV<sup>T</sup> is a good approximation of the rating matrix A. Note that the matrix A is very sparse - very few ratings are given by a user among the millions of items in the corpus.<br>
+However, the simple model has one major drawback - it is enormously difficult to use side features of items e.g. genres or categories of the item. Also, popular items tend to be recommended for everyone without capturing specific user interests. We looked at alternatives to matrix factorization in order to address these limitations.
+
+In recent years, a number of approaches based on gradient boosted decision trees and deep neural networks have been proposed. These approaches can easily take user and item features as input and can be trained to capture the specific interests of a user in order to improve the relevance of recommendations. We chose the following 5 models in this study for candidate generation:
 
 | Collaborative Filtering  | Content-based Filtering | Hybrid   
 | ------------------------ | ----------------------- | --------    |
@@ -27,9 +36,15 @@ List of models considered in this study for candidate generation:
 #### Scoring
 After training, the model is used to generate a score for each unseen item for a given user.
 #### Ranking
-The generated scores are sorted in the descending order and the top k items are provided as recommendations to the user. The top k items are across several categories. We can also provide the top k items for a related category.
+The generated scores are sorted in the descending order and the top k items are provided as recommendations to the user. The top k items are across several categories. From that sorted list, we can also provide the top k items for a related category.<br>
 
-## Amazon Reviews Dataset
+In this project, **we had the following goals**:
+- Review the published papers associated with each model (except the LightGBM based model).
+- Learn how to train and deploy each model on our chosen dataset.
+- Measure the overall performance of each model on our chosen dataset using the popular normalized discounted cumulative gain (NDCG@10) and hitrate (Hit@10) metrics.
+- Compare and contrast the relevance of the top 10 recommended items by each model.
+
+## Data Preparation: Amazon Reviews Dataset
 [Amazon Reviews](http://deepyeti.ucsd.edu/jianmo/amazon/index.html) dataset has 157+ million reviews, and 15+ million items.
 
 We took the following steps to reduce the size of data (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_gen_dataset.ipynb)):
@@ -55,7 +70,7 @@ We took the following steps to reduce the size of data (source code: [Jupyter No
 <a id=ffm_format></a>
 - Besides the chronological split, xDeepFM requires the data to be in Field-aware Factorization Machine (FFM) format where each row in the dataset has the following format: `<label> <field_index_id>:<feature_index_id>:<feature_value>`. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/preprocessing/amzn_ffm.ipynb))
 
-## Model Architecture
+## Modeling: Review of model architectures under study
 The following 5 models were used for candidate generation, scoring and ranking:
 ### 1. LightGBM: A Highly Efficient Gradient Boosting Decision Tree
 
@@ -106,7 +121,7 @@ Notes about the model:<br>
 - Since self-attention model does not include any recurrent or convolutional module, it is not aware of the positions of previous items. Hence, the authors inject a learnable position embedding layer.
 - In order to tackle the problems of overfitting and vanishing gradients, the authors use both dropout and residual connections as shown above.
 
-## Modeling
+## Modeling: Training, validation, and test
 We used the [Microsoft Recommenders](https://github.com/microsoft/recommenders) for this study. The repository offers implementations of the models under study and provides examples and best practices for building recommendation systems. However, we did make changes to the library's implementations when there were specific performance and process requirements (as discussed below).
 
 ### LightGBM, Wide & Deep, xDeepFM
@@ -122,10 +137,10 @@ The two models use the Amazon Reviews dataset as a **binary classification** pro
 |     | Collaborative filtering |     | Content-based filtering | Hybrid |     |
 | --- | ----------------------- | --- | ----------------------- | ------ | --- |
 |  | SLi-Rec | SASRec | LightGBM | Wide & Deep | xDeepFM |
-| NDCG@10 | **0.404** | 0.3929 | 0.0725 | 0.1256 | 0.1881 |
-| Hit@10 | **0.6654** | 0.61 | 0.1631 | 0.2781 | 0.3497 |
+| NDCG@10 | **0.404** | 0.392 | 0.0725 | 0.1256 | 0.1881 |
+| Hit@10 | **0.6654** | 0.628 | 0.1631 | 0.2781 | 0.3497 |
 
-### Modeling Details
+### Modeling: Implementation details
 #### 1. LightGBM
 In this model, categorical features were encoded using the ordinal encoder from the [Category Encoders](https://contrib.scikit-learn.org/category_encoders/) library. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/lightgbm/lightgbm_amzn_electronics.ipynb))
 - The validation loss and the 5 most important features from the feature importance list are shown below. Note that the model training is stopped due to early stopping as the validation rmse does not improve after 20 rounds. Here C3, C11, and C15 categories are "All Electronics", "Cell Phones & Accessories", and "Computers" categories/genres respectively.
@@ -185,9 +200,18 @@ The model requires the user and item vocabulary dictionaries mapping the alphanu
 | ---------------------------- | -------------------------- |
 | <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/sas_train_valid_logloss.png?raw=true" alt="Loss SASRec model"/> | <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/sas_ndcg_hit10.png?raw=true" alt="NDCG@10 and Hit@10"/>
 
-## Model Serving and Top K recommendations
-For each model, we have added code to compute the top k recommendations for any user. 
-- For this study in order to compare the quality of recommendations made, we chose the user that had the most reviews in our dataset.
+## Model Serving
+After training each model, we save the best model along with the trained weights. The trained model can be used for serving the predicted rating score for a user reviewing an item using the regression models or the predicted probability score or logit for a user reviewing the item next using the binary classification models.
+
+### Computing the Top K recommendations for a user
+For each model, we have added code to compute the top k recommendations for any user in their respective notebooks. The steps for computing the top k recommendations are as follows:
+- Identify the list of products that have not been reviewed by the user.
+- For each such product not reviewed by the user, identify the features required by each model to predict either a rating score (LightGBM, Wide & Deep, xDeepFM) or a probability score or logit of that item being reviewed by the user next given the review history of the user (SLi-Rec, SASRec).
+- Transform the input features according to the input requirements for each model.
+- Use the model's predict function to output the score for each product. Sort the scores for each product and we have the Top K recommendations across all categories. The generated dataframe also has the category column and we can use that information to generate Top K recommendations for a specific category.
+
+### Analyzing the review history of a sample user
+- For this study in order to compare the quality of recommendations made, **we chose the user that had the most reviews** in our dataset.
 - This user had 324 product reviews. The 10 most recent ones in the training dataset were as follows:
 
 | Date | Main category | Other categories | Title |
@@ -195,13 +219,13 @@ For each model, we have added code to compute the top k recommendations for any 
 | 2018-03-25 | Home Audio & Theater | Electronics, Accessories & Supplies, Audio & Video Accessories | BlueRigger High Speed Micro HDMI to HDMI cable with Ethernet (10 Feet) - Support 4K- UltraHD, 3D, 1080p (Latest Standard) |
 | 2018-03-25 | All Electronics | Electronics, Computers & Accessories, Computer Components | Corsair CMSA8GX3M2A1066C7 Apple 8 GB Dual Channel Kit DDR3 1066 (PC3 8500) 204-Pin DDR3 Laptop SO-DIMM Memory 1.5V |
 | 2018-03-25 | All Electronics | Electronics, Computers & Accessories |	D-Link 8 Port 10/100 Unmanaged Metal Desktop Switch (DES-108) |
-| 2018-03-25 | Computers | Electronics, Computers & Accessories |	New iPad 9.7" (2018 & 2017) / iPad Pro 9.7 / iPad Air 2 / iPad Air Screen Protector, SPARIN Tempered Glass Screen Protector - Apple Pencil Compatible/High Definition/Scratch Resistant |
 | 2018-03-25 | Computers | Electronics, Computers & Accessories |	StarTech.com CABSHELF Black Standard Universal Server Rack Cabinet Shelf |
-| 2018-03-25 | All Electronics | Electronics, Accessories & Supplies, Audio & Video Accessories | ESYNIC DAC Digital to Analog Audio Converter Optical Coax to Analog RCA Audio Adapter with Optical Cable 3.5mm Jack Output for HDTV Blu Ray DVD Sky HD Xbox 360 TV Box |
 | 2018-03-13 | All Electronics | Office Products, Office Electronics | HP Laserjet Pro M402dw Wireless Monochrome Printer, Amazon Dash Replenishment Ready (C5F95A#BGJ) |
 | 2018-03-13 | All Electronics | Electronics, Accessories & Supplies, Audio & Video Accessories |	VCE 4K x 2K Mini HDMI Male to HDMI Female Converter Adapter Cable-6 Inch |
 | 2018-03-13 | Computers | Electronics, Computers & Accessories, Computer Components | Timetec Hynix IC 4GB DDR3L 1600MHz PC3L-12800 Unbuffered Non-ECC 1.35V CL11 2Rx8 Dual Rank 204 Pin SODIMM Laptop Notebook Computer Memory Ram Upgrade (Dual Rank 4GB) |
 | 2017-09-08 | Home Audio & Theater | Home & Kitchen | VIVO Universal LCD LED Flat Screen TV Table Top Desk Stand with Glass Base fits 32" to 55" T.V. (STAND-TV00L) |
+| 2017-09-08 | All Electronics | Home & Kitchen | VIVO Universal LCD Flat Screen TV Table Top Stand / Base Mount fits 27" to 55" T.V. (STAND-TV00T) |
+| 2017-08-17 | Home Audio & Theater | Electronics, Computers & Accessories, Computer Accessories & Peripherals | CyberPower  CP1500AVRLCD Intelligent LCD UPS System, 1500VA/900W, 12 Outlets, AVR, Mini-Tower |
 
 - The validation record for this user is :
 
@@ -215,8 +239,14 @@ For each model, we have added code to compute the top k recommendations for any 
 | ---- | ------------- | ---------------- | ----- |
 | 2018-03-25 | Computers| Electronics, Computers & Accessories | New iPad 9.7" (2018 & 2017) / iPad Pro 9.7 / iPad Air 2 / iPad Air Screen Protector, SPARIN Tempered Glass Screen Protector - Apple Pencil Compatible/High Definition/Scratch Resistant |
 
-- While the recent history would play a significant role in recommendations made by the sequential models (SLi-Rec, SASRec), we can also look at the histogram of the categories of products reviewed by this user overall (including sub categories) and just the main category alone.
+- While the recent history would play a significant role in recommendations made by the sequential models (SLi-Rec, SASRec), we can also look at the histogram of the categories of products reviewed by this user overall (including sub categories used in LightGBM, Wide & Deep, xDeepFM) and just the main category alone (used in SLi-Rec, SASRec).
 
 | Histogram of all categories in the product reviews by the user | Histogram of main categories in the product reviews by the user |
 | -------------------------------------------------------------- | --------------------------------------------------------------- |
-| <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/hist_all_cat.png?raw=true" alt="Histogram of all categories in the reviews"/> | <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/hist_main_cat.png?raw=true" alt="Histogram of all categories in the reviews"/> |
+| <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/hist_all_cat.png?raw=true" alt="Histogram of all categories in the reviews"/> | <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/hist_main_cat.png?raw=true" alt="Histogram of main categories in the reviews"/> |
+
+- Analyzing the information above (including the recent history), it is clear that the user has reviewed mostly "Computers" and "All Electronics" categories, though the most recent items include "Home Audio & Theatre" category.
+
+### Top K recommendations for the sample user "explained"
+- Unlike the use of Movielens dataset where the task of explaining (and comparing) the recommendations made by a model is a lot easier, the use of Amazon reviews dataset proved challenging. It is a lot easier to compare "Aladdin" to "Lion King" based on their genres than it is to compare computer parts, electronics, and accessories found in this dataset.
+- Also, it is worth remembering that SLi-Rec, SASRec use collaborative filtering, LightGBM uses content-based filtering, and Wide & Deep, xDeepFM use both and hence come under hybrid model. In content-based filtering, we use item features to recommend other items similar to what the user likes, based on their previous ratings.
