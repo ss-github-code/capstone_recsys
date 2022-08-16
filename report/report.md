@@ -131,7 +131,7 @@ The two models use the Amazon Reviews dataset as a **binary classification** pro
 <a id=ndcg_10></a>
 - Because of the fundamental difference among the models, we cannot compare the performance of the models directly. The two sequential models (SLi-Rec & SASRec) already output two other metrics - **Normalized Discounted Cumulative Gain (NDCG)** and **Hit Rate**, we added code to output the same metric from the other 3 models for this study.
 - To avoid heavy computation on all user-item pairs (a cross join of 830K+ users and 63K items!), the authors for the models followed a strategy based on positive and negative sampling. For each user <i>u</i> in the test dataset, we randomly sample 50 negative items, and rank these items with the ground truth item. Based on the rankings of these 51 items, NDCG@10 and Hit@10 is evaluated for all models.
-
+<a id='main_results'></a>
 ### Comparing models based on NDCG@10, Hit@10
 
 |     | Collaborative filtering |     | Content-based filtering | Hybrid |     |
@@ -249,4 +249,11 @@ For each model, we have added code to compute the top k recommendations for any 
 
 ### Top K recommendations for the sample user "explained"
 - Unlike the use of Movielens dataset where the task of explaining (and comparing) the recommendations made by a model is a lot easier, the use of Amazon reviews dataset proved challenging. It is a lot easier to compare "Aladdin" to "Lion King" based on their genres than it is to compare computer parts, electronics, and accessories found in this dataset.
-- Also, it is worth remembering that SLi-Rec, SASRec use collaborative filtering, LightGBM uses content-based filtering, and Wide & Deep, xDeepFM use both and hence come under hybrid model. In content-based filtering, we use item features to recommend other items similar to what the user likes, based on their previous ratings.
+- Also, it is worth remembering that SLi-Rec, SASRec use collaborative filtering, LightGBM uses content-based filtering, and Wide & Deep, xDeepFM use both and hence come under hybrid model. 
+- In content-based filtering, we use item features to recommend other items similar to what the user likes, based on their previous ratings. As discussed [here](https://developers.google.com/machine-learning/recommendation/content-based/summary) the advantage of content-based filtering is that the model does not depend on any data from other users. The model can capture specific interests of a user and recommend niche items. So, how did we do among the 3 content-based models - LightGBM based, Wide & Deep, xDeepFM?<br>
+All of them have similar inputs that includes numerical and one hot encoded categorical features. The simple LightGBM does not consider any cross category transformations, the Wide & Deep does consider them, and the xDeepFM has a sophisticated neural net (CIN) to discover the cross category transformations. Of course, Wide & Deep and xDeepFM are hybrid models and use collaborative filtering.<br>
+As already noted [above](#main_results), the performance of the models using the NDCG@10 and Hit@10 metrics does improve as we go from LightGBM model to Wide & Deep to xDeepFM. In a very sparse dataset, such as ours, it definitely helps to throw in additional features. But do the additional features and model complexity help with the recommendations made for this specific user? Instead of worrying about product titles (they are shown below truncated just for context), let's look at the main categories in the top 10 recommendations for this user.
+
+| Rank | LightGBM category | Title | Wide & Deep category | Title | xDeepFM category | Title |
+| ---- | ----------------- | ----- | -------------------- | ----- | ---------------- | ----- |
+| 1 | xyz | zyz... | abc | abc... | mno | mno...|
