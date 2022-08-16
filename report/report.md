@@ -2,12 +2,12 @@
 
 ## Problem Statement
 ### Recommendations: What and Why
-As explained in the advanced course on [Recommendation Systems](https://developers.google.com/machine-learning/recommendation/overview) by Google, ML-based recommendation model is responsible for determining the similarity of items (movies, e-commerce, videos, etc.) in a large collection and then coming up with a recommendation based on a user's likes or interests. The goal of a recommendation system is to find compelling content from a large collection consisting of millions of items. Yes, the user can initiate a search to access content. However, a recommendation system can display related items that users might not even have thought to search.
+As explained in the advanced course on [Recommendation Systems](https://developers.google.com/machine-learning/recommendation/overview) by Google, ML-based recommendation model is responsible for determining the similarity of items in a large collection of items (movies, e-commerce, videos, etc.) and then coming up with a recommendation based on a user's likes or interests. The goal of a recommendation system is to find a small number `k` (maybe 10, 20) of compelling items from a large collection of millions of items. Yes, the user can initiate a search to access content. However, a recommendation system can display related items that users might not even have thought to search.
 
 Two kinds of recommendations are commonly used:
 
-- Recommending the **top k** items to a user on their homepage personalized for that user based on their known interests/history
-- Recommending the **related set of k** items once a user has clicked on/viewed/purchased a product
+- Recommending the **top `k`** items to a user on their homepage personalized for that user based on their known interests/history
+- Recommending the **related set of `k`** items once a user has clicked on/viewed/purchased a product
 
 One common pipeline for Recommendation Systems consists of the following components:
 - Candidate Generation
@@ -21,10 +21,10 @@ There are two main approaches to candidate generation:
 - **Collaborative Filtering**: Item and user similarity is used simultaneously to provide recommendations.
 - **Content-based Filtering**: Item similarity is used to recommend items similar to what the user has liked before.
 
-Both approaches map each item and each user (referred to as a query as we can also associate additional context to a user, e.g. item history) to an embedding vector in a common embedding space E = R<sup>d</sup>. Typically, the embedding space is low-dimensional where the dimension `d` is much smaller compared to the size of the corpus.<br>
+Both approaches map each **item** and each **user** (referred to as a **query** as we can also associate additional context to a user, e.g. item history) to an embedding vector in a common embedding space **E = R<sup>d</sup>**. Typically, the embedding space is low-dimensional where the dimension `d` is much smaller compared to the size of the corpus.<br>
 
 For this project, we started with the simple collaborative filtering method: **matrix factorization**. In this model, given the rating matrix A ∈ R<sup>m x n</sup>, where m is the number of users (or queries) and n is the number of items, the model learns a user embedding matrix U ∈ R<sup>m x d</sup> and an item embedding matrix V ∈ R<sup>n x d</sup>. The embeddings are learned such that the product UV<sup>T</sup> is a good approximation of the rating matrix A. Note that the matrix A is very sparse - very few ratings are given by a user among the millions of items in the corpus.<br>
-However, the simple model has one major drawback - it is enormously difficult to use side features of items e.g. genres or categories of the item. Also, popular items tend to be recommended for everyone without capturing specific user interests. We looked at alternatives to matrix factorization in order to address these limitations.
+However, the simple model has one major drawback - it is enormously difficult to use side features of items e.g. genres or categories of the item, item history, etc. Also, popular items tend to be recommended for everyone without capturing specific user interests. We looked at alternatives to matrix factorization in order to address these limitations.
 
 In recent years, a number of approaches based on gradient boosted decision trees and deep neural networks have been proposed. These approaches can easily take user and item features as input and can be trained to capture the specific interests of a user in order to improve the relevance of recommendations. We chose the following 5 models in this study for candidate generation:
 
