@@ -204,7 +204,7 @@ The model requires the user and item vocabulary dictionaries mapping the alphanu
 | ---------------------------- | -------------------------- |
 | <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/sas_train_valid_logloss.png?raw=true" alt="Loss SASRec model"/> | <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/sas_ndcg_hit10.png?raw=true" alt="NDCG@10 and Hit@10"/>
 
-- Similar to the regression based models, we added output the top k recommendations for a user as explained below.
+- Similar to the regression based models, we added code to output the top k recommendations for a user using the trained SLi-Rec and SASRec models as explained in the next section.
 
 ## Model Serving
 After training each model, we save the best model along with the trained weights. The trained model can be used for serving the predicted rating score for a user reviewing an item using the regression models or the predicted probability score or logit for a user reviewing the item next using the binary classification models.
