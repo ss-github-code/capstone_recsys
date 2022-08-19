@@ -32,7 +32,7 @@ def get_user_history_df():
 @st.cache
 def get_main_categories(df_reg):
     cols = df_reg.columns
-    print(len(cols), cols[2])
+    # print(len(cols), cols[2])
     return sorted(cols[2:])
 
 st.set_page_config(layout='wide') # must be the first streamlit command
@@ -163,9 +163,10 @@ else:
     )
     st.altair_chart(bars+text, use_container_width=True)
 
-    st.markdown("""Finally, let's also look at this user's history of reviews.
-    - The sequential models: SLi-Rec and SASRec have mechanisms to learn user behavior from the user's history of reviews.
-    - Note the most recent reviews by this user have come in "Computers", "All Electronics", and "Home Audio & Theater categories"
+    st.markdown("Finally, let's also look at this user's reviews history.")
+    st.markdown("""
+    - The sequential models: SLi-Rec and SASRec have mechanisms to learn user behavior from the user's history and predict similar items.
+    - Note that the most recent reviews by this user have been given in "Computers", "All Electronics", and "Home Audio & Theater categories."
     """)
 
     user_hist_df = get_user_history_df()
