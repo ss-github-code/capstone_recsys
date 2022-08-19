@@ -3,25 +3,30 @@ import pandas as pd
 import altair as alt
 import streamlit as st
 from PIL import Image
+from pathlib import Path
+
+@st.cache
+def get_path():
+    return Path(__file__).parents[0]
 
 @st.cache
 def get_reg_results():
-    df_reg = pd.read_csv('df_reg.csv')
+    df_reg = pd.read_csv(get_path() / 'data/df_reg.csv')
     return df_reg
 
 @st.cache
 def get_seq_results():
-    df_seq = pd.read_csv('df_seq.csv')
+    df_seq = pd.read_csv(get_path() / 'data/df_seq.csv')
     return df_seq
 
 @st.cache
 def get_user_df():
-    df_user = pd.read_csv('user.csv')
+    df_user = pd.read_csv(get_path() / 'data/user.csv')
     return df_user
 
 @st.cache
 def get_user_history_df():
-    df_user = pd.read_csv('user_hist.csv')
+    df_user = pd.read_csv(get_path() / 'data/user_hist.csv')
     return df_user
 
 @st.cache
@@ -32,7 +37,7 @@ def get_main_categories(df_reg):
 
 st.set_page_config(layout='wide') # must be the first streamlit command
 
-st.sidebar.image(Image.open('logo.png'), use_column_width=False)
+st.sidebar.image(Image.open(get_path() / 'logo.png'), use_column_width=False)
 st.title('Top K Dashboard')
 st.sidebar.title("Amazon Reviews Dataset")
 
