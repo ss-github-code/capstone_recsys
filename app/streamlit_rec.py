@@ -163,7 +163,7 @@ else:
     )
     st.altair_chart(bars+text, use_container_width=True)
 
-    st.markdown("""Finally, let's also look at this history of reviews. 
+    st.markdown("""Finally, let's also look at this user's history of reviews.
     - The sequential models: SLi-Rec and SASRec have mechanisms to learn user behavior from the user's history of reviews.
     - Note the most recent reviews by this user have come in "Computers", "All Electronics", and "Home Audio & Theater categories"
     """)
