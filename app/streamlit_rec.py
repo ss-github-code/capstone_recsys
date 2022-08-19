@@ -117,7 +117,7 @@ else:
     ).properties(
         width=w,
         height=h,
-        title='Sequential Models'
+        title='Binary Classification Models'
     )
 
     circles_reg = alt.Chart(df_output_reg).mark_circle().encode(
@@ -143,7 +143,7 @@ else:
     st.subheader("Visualizing ratings made by the user with most reviews")
     st.markdown("""
     - The bar chart below shows the number of reviews made by this user in the selected categories.
-    - The average rating given by the user is shown to the right of every bar.
+    - The average rating given by the user is shown to the right of every bar. The regression models are predicting the rating given by the user to the items not yet reviewed by the user.
     - Note that the ratings matrix is sparse! In addition, this user gives high ratings to every category!
     """)
     df_user = get_user_df()
@@ -165,8 +165,8 @@ else:
 
     st.markdown("Finally, let's also look at this user's reviews history.")
     st.markdown("""
-    - The sequential models: SLi-Rec and SASRec have mechanisms to learn user behavior from the user's history and predict similar items.
-    - Note that the most recent reviews by this user have been given in "Computers", "All Electronics", and "Home Audio & Theater categories."
+    - The binary classification models: SLi-Rec and SASRec are also sequential models. They have mechanisms to learn user behavior from the user's history and predict similar items.
+    - Note that the most recent reviews by this user have been given in the "Computers", "All Electronics", and "Home Audio & Theater categories."
     """)
 
     user_hist_df = get_user_history_df()
