@@ -71,18 +71,23 @@ st.markdown("""
 The 5 models fall under 2 problem types: **regression** and **binary classification**. In regression, the models are predicting the target rating given to an unseen item by a user from the dataset. In binary classification, the models are predicting the probability of an item being reviewed next by a user from the dataset. For this dashboard, we chose the user with the most reviews in our dataset. Let's look at how the models predict the top k items among the selected categories.     
 """)
 
-k = st.slider("Choose k", min_value=5, max_value=25, value=10)
-
 df_reg = get_reg_results()
 df_seq = get_seq_results()
+
+k = st.slider("Choose k", min_value=5, max_value=25, value=10)
+all_cat = st.checkbox("Select all 36 categories")
+list_all_cat = list(get_main_categories(df_reg))
+st.markdown("or")
 categories = st.multiselect(
-    "Choose categories", list(get_main_categories(df_reg)), ["Amazon Devices", "Apple Products"]
+    "Choose categories", list_all_cat, ["Amazon Devices", "Apple Products"]
 )
 if not categories:
     st.error("Please select at least one category.")
 else:
     query_seq = ''
     query_reg = ''
+    if all_cat:
+        categories = list_all_cat
     for i, c in enumerate(categories):
         query_seq += f'(df_seq["{c}"] == 1)'
         query_reg += f'(df_reg["{c}"] == 1)'
@@ -142,28 +147,35 @@ else:
 
     st.subheader("Visualizing ratings made by the user with most reviews")
     st.markdown("""
-    - The bar chart below shows the number of reviews made by this user in the selected categories.
+    - The bar chart below shows the number of reviews made by this user in the selected categories. Note that this user has not reviewed items in all categories.
     - The average rating given by the user is shown to the right of every bar. The regression models are predicting the rating given by the user to the items not yet reviewed by the user.
     - Note that the ratings matrix is sparse! In addition, this user gives high ratings to every category!
     """)
     df_user = get_user_df()
     df_user = df_user[df_user['category'].isin(categories)]
-    m = df_user['count'].max() + 5
-    bars = alt.Chart(df_user).mark_bar().encode(
-        x=alt.X('count:Q', axis=alt.Axis(title='Count', grid=False), scale=alt.Scale(domain=[0, m])),
-        y=alt.Y('category:O', sort='-x', axis=alt.Axis(title=None, grid=False)),
-        color=alt.Color('category:N')
-    )
-    text = bars.mark_text(
-        align='left',
-        baseline='middle',
-        dx=3  # Nudges text to right so it doesn't appear on top of the bar
-    ).encode(
-        text='avg rating:Q'
-    )
-    st.altair_chart(bars+text, use_container_width=True)
+    if df_user.shape[0] > 0:
+        m = df_user['count'].max() + 10
+        bars = alt.Chart(df_user.copy()).mark_bar().encode(
+            x=alt.X('count:Q', axis=alt.Axis(title='Count', grid=False), scale=alt.Scale(domain=[0, m])),
+            y=alt.Y('category:O', sort=None, axis=alt.Axis(title=None, grid=False)),
+            color=alt.Color('category:N')
+        )
+        text = bars.mark_text(
+            align='left',
+            baseline='middle',
+            dx=3  # Nudges text to right so it doesn't appear on top of the bar
+        ).encode(
+            text='avg rating:Q'
+        )
+        st.altair_chart((bars+text), use_container_width=True)
+    else:
+        st.markdown("""
+            <center><b>
+            <i style='color: red;'>This user did not rate any items in the selected categories</i>
+            </b></center><br>
+            """,  unsafe_allow_html=True)
 
-    st.markdown("Finally, let's also look at this user's reviews history.")
+    st.markdown("**Finally, let's also look at this user's reviews history.**")
     st.markdown("""
     - The binary classification models: SLi-Rec and SASRec are also sequential models. They have mechanisms to learn user behavior from the user's history and predict similar items.
     - Note that the most recent reviews by this user have been given in the "Computers", "All Electronics", and "Home Audio & Theater categories."
