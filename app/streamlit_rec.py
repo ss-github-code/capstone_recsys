@@ -42,7 +42,7 @@ st.title('Top K Dashboard')
 st.sidebar.title("Amazon Reviews Dataset")
 
 with st.sidebar:
-    dict_ds = {'# reviews': 5_613_183, '# users': 830_668, '# categories under Electronics': 36}
+    dict_ds = {'# reviews': 5_613_183, '# users': 830_668, '# items': 63_725, '# categories under Electronics': 36}
     df = pd.DataFrame(dict_ds, index=[0]).T
     df.columns = ['Count']
     s = df.style.format({"Count": lambda x : '{:,.0f}'.format(x)})
