@@ -84,6 +84,7 @@ Notes about the model:<br>
 - We only require ordinal encoder to encode string like categorical features.
 
 ### 2. [Wide & Deep](https://arxiv.org/abs/1606.07792): Wide & Deep Learning for Recommender Systems
+The following illustration of the architecture is taken from the [paper](https://arxiv.org/abs/1606.07792):
 
 <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/architect_widendeep.png?raw=true" alt="The architecture of Wide & Deep"/>
 
@@ -93,6 +94,7 @@ Notes about the model:<br>
 - **Deep** component is a feed-forward neural network; where the inputs are categorical features converted into embedding vectors. Each hidden layer performs the following computation where l = layer, f = activation function (ReLU), a(l), b(l), and w(l) are activations, bias, and weights at l-th layer: a<sup>(l+1)</sup> = f(w<sup>(l)</sup>a<sup>(l)</sup> + b<sup>(l)</sup>)<br>
 
 ### 3. [xDeepFM](https://arxiv.org/abs/1803.05170): Combining Explicit and Implicit Feature Interactions for Recommender Systems
+The following illustration of the architecture is taken from the [paper](https://arxiv.org/abs/1803.05170):
 
 <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/architect_xdeepfm.png?raw=true" alt="The architecture of Wide & Deep"/>
 
@@ -154,7 +156,7 @@ In this model, categorical features were encoded using the ordinal encoder from 
 - The model performance on the unseen test data: RMSE: 1.453, MAE: 0.901 was the worst when compared to Wide & Deep and xDeepFM models.
 - We added code to enable the NDCG@10 and Hit@10 calculations based on all the users in the test set and using 50 negative samples for every positive sample as explained [here](#ndcg_10) taking care of the use of ordinal encoded categorical features.
 <a id='top_k_user'></a>
-- In addition, we added code to print the top k recommendations for a user. For this study, we chose a user who has the most reviews in our dataset. We had the model output predicted scores for all the items not reviewed by the user, sort the results in the descending order and display the results in a dashboard. (TODO)
+- In addition, we added code to output the top k recommendations for a user. For this study, we chose a user who has the most reviews in our dataset. We had the model output predicted scores for all the items not reviewed by the user, sort the results in the descending order and save it in csv format. We summed up the results from this model and the next two regression models to come up with a top `k` list of recommendations to be displayed in a Streamlit [dashboard](https://ss-github-code-capstone-recsys-appstreamlit-rec-vxd02t.streamlitapp.com/).
 
 #### 2. Wide & Deep
 In this model, categorical features were encoded using the [`MultiLabelBinarizer`](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MultiLabelBinarizer.html) from `sklearn.preprocessing` library. In addition, there are a series of preprocessing steps to convert the Amazon reviews dataset into the input format required by the model. These are shown in the Jupyter notebook [here](https://github.com/ss-github-code/capstone_recsys/blob/main/data_preparation/amzn_gen_input_wide_deep.ipynb). (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/wide_n_deep/wide_deep_electronics.ipynb))
@@ -164,7 +166,7 @@ In this model, categorical features were encoded using the [`MultiLabelBinarizer
 
 - The model performance on the unseen test data: RMSE: 1.13, MAE: 0.792 was lower than that of the LightGBM model.
 - We added code to enable the NDCG@10 and Hit@10 calculations based on all the users in the test set and using 50 negative samples for every positive sample as explained [here](#ndcg_10) taking care of the encoding requirement of the categorical features.
-- In addition, we added code to print the top k recommendations for a user as explained [here](#top_k_user).
+- In addition, we added code to output the top k recommendations for a user as explained [here](#top_k_user).
 
 ### 3. xDeepFM
 In this model, numerical and categorical features had to be input using the FFM format. The preprocessing step is discussed [here](#ffm_format). In addition, we had to perform hyperparameter tuning in order to prevent overfitting. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/modeling/xdeepfm/xdeepfm_electronics.ipynb))
@@ -173,7 +175,7 @@ In this model, numerical and categorical features had to be input using the FFM 
 
 - The model performance on the unseen test data: RMSE: 1.1891 is comparable to that of the wide & deep model.
 - We added code to enable the NDCG@10 and Hit@10 calculations based on all the users in the test set and using 50 negative samples for every positive sample as explained [here](#ndcg_10) taking care of the FFM format requirement for the numerical and categorical features.
-- In addition, we added code to print the top k recommendations for a user as explained [here](#top_k_user).
+- In addition, we added code to output the top k recommendations for a user as explained [here](#top_k_user).
 
 ### Summary for the regression based models
 |     | Test RMSE |
@@ -201,6 +203,8 @@ The model requires the user and item vocabulary dictionaries mapping the alphanu
 | Log Loss (Train, Validation) | Validation NDCG@10, Hit@10 |
 | ---------------------------- | -------------------------- |
 | <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/sas_train_valid_logloss.png?raw=true" alt="Loss SASRec model"/> | <img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/sas_ndcg_hit10.png?raw=true" alt="NDCG@10 and Hit@10"/>
+
+- Similar to the regression based models, we added output the top k recommendations for a user as explained below.
 
 ## Model Serving
 After training each model, we save the best model along with the trained weights. The trained model can be used for serving the predicted rating score for a user reviewing an item using the regression models or the predicted probability score or logit for a user reviewing the item next using the binary classification models.
@@ -297,11 +301,24 @@ All of them have similar inputs that include numerical and one hot encoded categ
 - As far as the predictions made by SLi-Rec model goes, based on the model's architecture and the fact that 6 of the last 10 reviews made by the user were made on the same day, it is not surprising that the top 10 recommendations of the SLi-Rec model all belong to the "Computers" category. As explored [previously](#bar_plot_user), the highest fraction of the user's reviews were in the "Computers" category. And it is not surprising that collaborative filtering based model will latch on to the "Computers" category as almost recent reviews made by the user fall under the umbrella of computer accessories and would normally be associated together.
 - Please do note that we could not prevent overfitting while training the SASRec model. So, we will have to take that into consideration as we look for explanations for the behavior of the SASRec model. The model does seem to discover a few items that may be called serendipitous, but we do not want to draw too many conclusions on predictions made by an overfitting model.
 
+### Top 10 recommendations in a [Streamlit dashboard](https://ss-github-code-capstone-recsys-appstreamlit-rec-vxd02t.streamlitapp.com/)
+- The output from each of the 5 models was further processed to prepare for showing the top 10 recommendations under each category of item. (source code: [Jupyter Notebook](https://github.com/ss-github-code/capstone_recsys/blob/main/app/process_output.ipynb))
+- Instead of displaying the results from the 5 models separately (it would be overwhelming to the viewer, especially since the items themselves are not as exciting as movies), we decided to do an ensemble where we averaged the scores for all regression models (LightGBM, Wide & Deep, and xDeepFM) and similarly average the scores of the binary classification models (SLi-Rec, SASRec).
+- The dashboard will allow us to show the top `k` results in a much finer granularity and let the user explore the recommendations made in each category. (source code: [Python](https://github.com/ss-github-code/capstone_recsys/blob/main/app/streamlit_rec.py))
+- The dashboard running as a Streamlit app can be accessed [here](https://ss-github-code-capstone-recsys-appstreamlit-rec-vxd02t.streamlitapp.com/).
+
+<img src="https://github.com/ss-github-code/capstone_recsys/blob/main/report/images/topk_dash.png?raw=true" width="400" alt="Top K Dashboard"/>
+
 ## Conclusion
 
 In this project, we reviewed published papers on [Wide & Deep](https://arxiv.org/abs/1606.07792), [xDeepFM](https://arxiv.org/abs/1803.05170), [SLi-Rec](https://www.microsoft.com/en-us/research/uploads/prod/2019/07/IJCAI19-ready_v1.pdf), and [SASRec](https://arxiv.org/abs/1808.09781) models that each offer a unique methodology to be used in a recommendation system. We coded the steps required to explore and prepare the Amazon dataset of reviews of items that fell under the broad category of "Electronics". Each model required a different input format and we had to transform the dataset into the format demanded by the model. We learnt how to train and deploy the models on the chosen reviews dataset. We measured the performance of the models using NDCG@10 and Hit@10 metrics. Finally, we were able to compare and contrast the relevance of the top 10 recommended items for the user with the most reviews in the dataset.<br>
 
-We had to overcome a few challenges - the most difficult one was our inability to prevent overfitting while training the SASRec model. An enormous challenge that we had to overcome was in dealing with TensorFlow(TF) 1.x code under the hood in the Microsoft Recommenders library. When we made our initial project proposal, we had not factored the time to be spent in overcoming the challenges associated with learning and understanding TF 1.x code (and the lack of eager execution and print in TF 1.x). We partially overcame that hurdle and learnt how to port from TF 1.x to TF 2.x and were able to port and test TF 2.x implementation of xDeepFM (source code: [Python](https://github.com/ss-github-code/capstone_recsys/blob/main/recommenders/models/deeprec/models/xDeepFM_v2.py)). Since this was not the primary focus for this project, we did not pursue this further due to the paucity of time. We overcame a couple of challenges associated with the underlying implementation in the open source library: (a) we were successful in using the TensorFlow generator mechanism when the underlying library was failing to load the whole training dataset in the GPU memory; (b) we sped up validation and testing by enabling batch validation and test for a model that only had predictions working on 1 record at a time and was super slow. Finally, we found it difficult to explain some of the recommendations made by some of the models and could only come up with plausible explanations instead of explanations based on solid facts.<br>
+We had to overcome a few challenges - the most difficult one was our inability to prevent overfitting while training the SASRec model. An enormous challenge that we had to overcome was in dealing with TensorFlow(TF) 1.x code under the hood in the Microsoft Recommenders library. When we made our initial project proposal, we had not factored the time to be spent in overcoming the challenges associated with learning and understanding TF 1.x code (and the lack of eager execution and print in TF 1.x). We partially overcame that hurdle and learnt how to port from TF 1.x to TF 2.x and were able to port and test TF 2.x implementation of xDeepFM (source code: [Python](https://github.com/ss-github-code/capstone_recsys/blob/main/recommenders/models/deeprec/models/xDeepFM_v2.py)). Since this was not the primary focus for this project, we did not pursue this further due to the paucity of time.<br>
+There were quite a few data quality issues including missing values in the price column that made us drop our initial goal of finding recommendations in a given price range. This was to be expected in a dataset of this size built by scraping reviews and information from a live e-commerce site. Finally, we found it difficult to explain some of the recommendations made by some of the models and could only come up with plausible explanations instead of explanations based on solid facts.<br>
+
+We overcame a couple of challenges associated with the underlying implementation in the open source library: (a) we were successful in using the TensorFlow generator mechanism when the underlying library was failing to load the whole training dataset in the GPU memory; (b) we sped up validation and testing by enabling batch validation and test for a model that only had predictions working on 1 record at a time and was super slow.<br>
+ 
+Our main contribution in this project was to build a data pipeline that was used to train, validate and deploy 5 recommendation system models on a common dataset. The 5 models had widely different architectures and complexities and we were able to successfully learn and implement the data pipeline, perform hyperparameter tuning, and model serving for each of the 5 models (after overcoming the challenges mentioned above). Our end-to-end pipeline (including the interactive dashboard) will allow data scientists to explore other recommendation system models that are supported in the open source Recommenders library.
 
 In the future, we would like to explore how to tune the hyperparameters of the SASRec model. It is worth noting that the number of hyperparameters in SLi-Rec and SASRec are quite large and it requires an enormous amount of compute resources to do a grid search over all of them. We would also like to consider the much larger dataset consisting of over 38 million+ reviews and see how well the models perform. We now understand how to use multi-processes and queues to feed input data to the models and would like to explore ways to speed up the xDeepFM, SLiRec models in order to cut down the time it takes to train these models. This would be very helpful when we train the models on the much larger dataset. We would also like to explore how to build an ensemble of models or combine the results from multiple models while serving top k recommendations for a user. Finally, we would like to learn how to use distributed compute resources to handle much larger datasets.
 
@@ -310,3 +327,6 @@ In the future, we would like to explore how to tune the hyperparameters of the S
 - Lian, J., Zhou, X., Zhang, F., Chen, Z., Xie, X., & Sun, G. (2018). xDeepFM: Combining Explicit and Implicit Feature Interactions for Recommender Systems. Proceedings of the 24th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining, KDD 2018, London, UK, August 19-23, 2018.
 - Zeping Yu, Jianxun Lian, Ahmad Mahmoody, Gongshen Liu, Xing Xie. Adaptive User Modeling with Long and Short-Term Preferences for Personalized Recommendation. In Proceedings of the 28th International Joint Conferences on Artificial Intelligence, IJCAI’19, Pages 4213-4219. AAAI Press, 2019.
 - Wang-Cheng Kang, Julian McAuley (2018). Self-Attentive Sequential Recommendation. In Proceedings of IEEE International Conference on Data Mining (ICDM'18)
+
+## Statement of Work
+All of the team members were involved in the initial exploration of the datasets and the consideration of the recommendation system models to pursue in this study. Shiv and Zhipeng looked at several different Amazon reviews dataset categories (Video Games, Fashion, etc.) before choosing the Electronics dataset. Shiv and Reitesh also looked at the [Dressipi dataset](http://www.recsyschallenge.com/2022/) that was part of the ACM Conference Series on Recommender Systems 2022. We were successful in implementing the SLi-Rec model for this challenge. Shiv and Zhipeng worked on understanding matrix factorization, and the regression models. Shiv and Reitesh worked on understanding the sequential models. Shiv looked at the TensorFlow API and made the changes required to train all of the models. He worked on tuning the hyperparameters, added code to compute the NDCG@10, Hit@10 metrics, and output the top 10 recommendations for each model. Shiv and Zhipeng worked on the dashboard using Streamlit.
